@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashby Tools</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            font-size: 15px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #333;
+        }
+
+        .tab.active {
+            color: #667eea;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tab-icon {
+            margin-right: 8px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:hover, input[type="number"]:hover {
+            border-color: #667eea;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        select:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .help-text {
+            font-size: 13px;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 8px;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Candidates section */
+        .candidates-section {
+            display: none;
+        }
+
+        .candidates-section.visible {
+            display: block;
+        }
+
+        .candidates-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .candidates-header h2 {
+            color: #1a1a2e;
+        }
+
+        .candidate-count {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .candidates-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .candidate-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .candidate-item:last-child {
+            border-bottom: none;
+        }
+
+        .candidate-item:hover {
+            background: #f9f9f9;
+        }
+
+        .candidate-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 16px;
+            cursor: pointer;
+        }
+
+        .candidate-info {
+            flex: 1;
+        }
+
+        .candidate-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .candidate-email {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .candidate-stage {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 16px;
+        }
+
+        .no-resume {
+            color: #999;
+            font-style: italic;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .select-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* File upload */
+        .file-input-wrapper {
+            position: relative;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-input-wrapper:hover {
+            border-color: #667eea;
+            background: #faf9ff;
+        }
+
+        .file-input-wrapper.dragover {
+            border-color: #667eea;
+            background: #f0eeff;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .file-text {
+            color: #666;
+        }
+
+        .file-name {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #f0eeff;
+            border-radius: 4px;
+            color: #667eea;
+            font-weight: 500;
+            display: none;
+        }
+
+        /* Loading & Progress */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .progress-section {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .progress-section.visible {
+            display: block;
+        }
+
+        /* Messages */
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #f0eeff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-box h3 {
+            color: #5a4fcf;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .info-box p {
+            color: #6b5dd3;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Ashby Tools</h1>
+                    <p class="subtitle">Resume downloader and PDF utilities</p>
+                </div>
+                <a href="/logout" style="color: #667eea; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #667eea; border-radius: 6px;">Logout</a>
+            </div>
+
+            <div id="error-message" class="error"></div>
+            <div id="success-message" class="success"></div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="downloader">
+                    <span class="tab-icon">📥</span>Resume Downloader
+                </button>
+                <button class="tab" data-tab="combiner">
+                    <span class="tab-icon">📄</span>PDF Combiner
+                </button>
+            </div>
+
+            <!-- Tab 1: Resume Downloader -->
+            <div id="tab-downloader" class="tab-content active">
+                <div class="form-group">
+                    <label for="job-select">Select Job</label>
+                    <select id="job-select">
+                        <option value="">Loading jobs...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="stage-select">Select Interview Stage</label>
+                    <select id="stage-select" disabled>
+                        <option value="">Select a stage...</option>
+                    </select>
+                </div>
+
+                <button id="fetch-candidates" class="btn btn-primary" disabled>
+                    Fetch Candidates
+                </button>
+            </div>
+
+            <!-- Tab 2: PDF Combiner -->
+            <div id="tab-combiner" class="tab-content">
+                <div class="info-box">
+                    <h3>How it works</h3>
+                    <p>
+                        Upload a ZIP file containing PDF files. Specify how many PDFs should be combined into each output file.
+                        For example, if you have 100 PDFs and set "10 PDFs per file", you'll get 10 combined PDF files.
+                    </p>
+                </div>
+
+                <form id="combine-form">
+                    <div class="form-group">
+                        <label>Upload ZIP File</label>
+                        <div class="file-input-wrapper" id="drop-zone">
+                            <div class="file-icon">📁</div>
+                            <div class="file-text">
+                                <strong>Click to upload</strong> or drag and drop<br>
+                                ZIP file containing PDF files
+                            </div>
+                            <input type="file" id="zip-file" accept=".zip">
+                            <div id="file-name" class="file-name"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pdfs-per-file">PDFs per Combined File</label>
+                        <input type="number" id="pdfs-per-file" min="1" value="10">
+                        <p class="help-text">Number of PDF files to combine into each output PDF</p>
+                    </div>
+
+                    <div id="combine-progress" class="progress-section">
+                        <div class="spinner"></div>
+                        <p>Combining PDF files...</p>
+                    </div>
+
+                    <button type="submit" id="combine-btn" class="btn btn-primary" disabled>
+                        Combine PDFs
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Candidates Section (for Resume Downloader) -->
+        <div id="candidates-section" class="card candidates-section">
+            <div class="candidates-header">
+                <h2>Candidates</h2>
+                <span id="candidate-count" class="candidate-count">0 candidates</span>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loading-text">Loading candidates...</p>
+                <p style="font-size: 12px; color: #999; margin-top: 8px;">This may take a minute for jobs with many candidates</p>
+            </div>
+
+            <div id="candidates-list" class="candidates-list"></div>
+
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <p>No candidates found for the selected criteria.</p>
+            </div>
+
+            <div class="actions">
+                <div class="select-actions">
+                    <button class="btn-link" onclick="selectAll()">Select All</button>
+                    <button class="btn-link" onclick="selectNone()">Select None</button>
+                    <button class="btn-link" onclick="selectWithResume()">Select With Resume</button>
+                </div>
+                <button id="download-btn" class="btn btn-primary" onclick="downloadSelected()">
+                    Download Selected Resumes
+                </button>
+            </div>
+
+            <div id="download-progress" class="progress-section">
+                <div class="spinner"></div>
+                <p>Preparing download...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Tab Management ====================
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update active content
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === `tab-${targetTab}`) {
+                        content.classList.add('active');
+                    }
+                });
+
+                // Hide candidates section when switching to combiner
+                if (targetTab === 'combiner') {
+                    document.getElementById('candidates-section').classList.remove('visible');
+                }
+            });
+        });
+
+        // ==================== Resume Downloader ====================
+        let candidates = [];
+        let currentJobId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadJobs();
+            initPdfCombiner();
+        });
+
+        // Load jobs
+        async function loadJobs() {
+            try {
+                const response = await fetch('/api/jobs');
+                const jobs = await response.json();
+
+                const select = document.getElementById('job-select');
+                select.innerHTML = '<option value="">Select a job...</option>';
+
+                if (jobs.error) {
+                    showError(jobs.error);
+                    return;
+                }
+
+                jobs.forEach(job => {
+                    const option = document.createElement('option');
+                    option.value = job.id;
+                    option.textContent = `${job.title} (${job.status})`;
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', onJobSelect);
+            } catch (err) {
+                showError('Failed to load jobs: ' + err.message);
+            }
+        }
+
+        // Handle job selection
+        async function onJobSelect(e) {
+            currentJobId = e.target.value;
+            const stageSelect = document.getElementById('stage-select');
+            const fetchBtn = document.getElementById('fetch-candidates');
+
+            // Reset fetch button
+            fetchBtn.disabled = true;
+
+            if (!currentJobId) {
+                stageSelect.disabled = true;
+                stageSelect.innerHTML = '<option value="">Select a stage...</option>';
+                return;
+            }
+
+            try {
+                stageSelect.innerHTML = '<option value="">Loading stages...</option>';
+                const response = await fetch(`/api/jobs/${currentJobId}/stages`);
+                const stages = await response.json();
+
+                stageSelect.innerHTML = '<option value="">Select a stage...</option>';
+
+                if (!stages.error) {
+                    stages.sort((a, b) => a.orderInInterviewPlan - b.orderInInterviewPlan);
+                    stages.forEach(stage => {
+                        const option = document.createElement('option');
+                        option.value = stage.id;
+                        option.textContent = stage.title;
+                        stageSelect.appendChild(option);
+                    });
+                }
+
+                stageSelect.disabled = false;
+            } catch (err) {
+                showError('Failed to load stages: ' + err.message);
+            }
+        }
+
+        // Enable fetch button when stage is selected
+        document.getElementById('stage-select').addEventListener('change', () => {
+            const stageSelect = document.getElementById('stage-select');
+            const fetchBtn = document.getElementById('fetch-candidates');
+            fetchBtn.disabled = !stageSelect.value;
+        });
+
+        // Fetch candidates button click
+        document.getElementById('fetch-candidates').addEventListener('click', async () => {
+            const jobId = document.getElementById('job-select').value;
+            const stageId = document.getElementById('stage-select').value;
+
+            if (!jobId) {
+                showError('Please select a job');
+                return;
+            }
+
+            if (!stageId) {
+                showError('Please select an interview stage');
+                return;
+            }
+
+            await loadCandidates(jobId, stageId);
+        });
+
+        // Load candidates
+        async function loadCandidates(jobId, stageId) {
+            const section = document.getElementById('candidates-section');
+            const loading = document.getElementById('loading');
+            const listEl = document.getElementById('candidates-list');
+            const emptyState = document.getElementById('empty-state');
+
+            section.classList.add('visible');
+            loading.style.display = 'block';
+            listEl.innerHTML = '';
+            emptyState.style.display = 'none';
+
+            try {
+                let url = `/api/candidates?jobId=${jobId}`;
+                if (stageId) {
+                    url += `&stageId=${stageId}`;
+                }
+
+                const response = await fetch(url);
+                candidates = await response.json();
+
+                loading.style.display = 'none';
+
+                if (candidates.error) {
+                    showError(candidates.error);
+                    return;
+                }
+
+                if (candidates.length === 0) {
+                    emptyState.style.display = 'block';
+                    document.getElementById('candidate-count').textContent = '0 candidates';
+                    return;
+                }
+
+                document.getElementById('candidate-count').textContent =
+                    `${candidates.length} candidate${candidates.length !== 1 ? 's' : ''}`;
+
+                renderCandidates();
+            } catch (err) {
+                loading.style.display = 'none';
+                showError('Failed to load candidates: ' + err.message);
+            }
+        }
+
+        // Render candidates list
+        function renderCandidates() {
+            const listEl = document.getElementById('candidates-list');
+            listEl.innerHTML = '';
+
+            candidates.forEach((candidate, index) => {
+                const hasResume = !!candidate.resumeFileHandle;
+                const div = document.createElement('div');
+                div.className = 'candidate-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="candidate-checkbox"
+                           data-index="${index}"
+                           ${hasResume ? '' : 'disabled'}
+                           ${hasResume ? 'checked' : ''}>
+                    <div class="candidate-info">
+                        <div class="candidate-name">${candidate.name || 'Unknown'}</div>
+                        <div class="candidate-email">${candidate.email}</div>
+                        ${!hasResume ? '<div class="no-resume">No resume available</div>' : ''}
+                    </div>
+                    <span class="candidate-stage">${candidate.stage}</span>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        // Selection helpers
+        function selectAll() {
+            document.querySelectorAll('.candidate-checkbox:not(:disabled)').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function selectNone() {
+            document.querySelectorAll('.candidate-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        function selectWithResume() {
+            document.querySelectorAll('.candidate-checkbox').forEach(cb => {
+                cb.checked = !cb.disabled;
+            });
+        }
+
+        // Download selected resumes
+        async function downloadSelected() {
+            const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
+            const selected = [];
+            const names = [];
+
+            checkboxes.forEach(cb => {
+                const index = parseInt(cb.dataset.index);
+                const candidate = candidates[index];
+                if (candidate.resumeFileHandle) {
+                    selected.push(candidate.resumeFileHandle);
+                    names.push(candidate.name || 'Unknown');
+                }
+            });
+
+            if (selected.length === 0) {
+                showError('No candidates with resumes selected');
+                return;
+            }
+
+            const progress = document.getElementById('download-progress');
+            const downloadBtn = document.getElementById('download-btn');
+
+            progress.classList.add('visible');
+            downloadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/download-bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fileHandles: selected,
+                        candidateNames: names
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Download failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'candidate_resumes.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                showSuccess(`Successfully downloaded ${selected.length} resume(s)`);
+            } catch (err) {
+                showError('Download failed: ' + err.message);
+            } finally {
+                progress.classList.remove('visible');
+                downloadBtn.disabled = false;
+            }
+        }
+
+        // ==================== PDF Combiner ====================
+        function initPdfCombiner() {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('zip-file');
+            const fileNameDisplay = document.getElementById('file-name');
+            const combineBtn = document.getElementById('combine-btn');
+            const form = document.getElementById('combine-form');
+
+            // Handle file selection
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    fileNameDisplay.textContent = file.name;
+                    fileNameDisplay.style.display = 'block';
+                    combineBtn.disabled = false;
+                } else {
+                    fileNameDisplay.style.display = 'none';
+                    combineBtn.disabled = true;
+                }
+            });
+
+            // Drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.name.toLowerCase().endsWith('.zip')) {
+                        fileInput.files = e.dataTransfer.files;
+                        fileNameDisplay.textContent = file.name;
+                        fileNameDisplay.style.display = 'block';
+                        combineBtn.disabled = false;
+                    } else {
+                        showError('Please upload a ZIP file');
+                    }
+                }
+            });
+
+            // Form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const file = fileInput.files[0];
+                const pdfsPerFile = document.getElementById('pdfs-per-file').value;
+
+                if (!file) {
+                    showError('Please select a ZIP file');
+                    return;
+                }
+
+                const progressSection = document.getElementById('combine-progress');
+                progressSection.classList.add('visible');
+                combineBtn.disabled = true;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('zipfile', file);
+                    formData.append('pdfsPerFile', pdfsPerFile);
+
+                    const response = await fetch('/api/combine-pdfs', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to combine PDFs');
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'combined_pdfs.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+
+                    showSuccess('PDFs combined successfully! Download started.');
+                } catch (err) {
+                    showError(err.message);
+                } finally {
+                    progressSection.classList.remove('visible');
+                    combineBtn.disabled = false;
+                }
+            });
+        }
+
+        // ==================== UI Helpers ====================
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('success-message');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

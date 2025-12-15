@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:developers.ashbyhq.com)",
+      "WebFetch(domain:www.bindbee.dev)",
+      "Bash(pip install:*)",
+      "Bash(python app.py:*)",
+      "Bash(curl:*)",
+      "Bash(python -c:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
