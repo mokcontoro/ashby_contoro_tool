@@ -217,22 +217,27 @@ def get_candidates():
         # Send initial status
         yield f"data: {json.dumps({'type': 'status', 'message': 'Fetching applications...'})}\n\n"
 
-        # Build filter parameters for server-side filtering
+        # Get applications filtered by job (server-side)
         filter_params = {'jobId': job_id}
-        if stage_id:
-            filter_params['interviewStageId'] = stage_id
-
-        # Get applications with server-side filtering
         applications_result = ashby_request_paginated('application.list', filter_params)
 
         if not applications_result.get('success'):
             yield f"data: {json.dumps({'type': 'error', 'message': 'Failed to get applications'})}\n\n"
             return
 
-        filtered_apps = applications_result.get('results', [])
+        all_apps = applications_result.get('results', [])
+
+        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {len(all_apps)} applications. Filtering by stage...'})}\n\n"
+
+        # Filter by stage (client-side, as Ashby API doesn't support stage filter)
+        if stage_id:
+            filtered_apps = [app for app in all_apps
+                            if app.get('currentInterviewStage', {}).get('id') == stage_id]
+        else:
+            filtered_apps = all_apps
         total_candidates = len(filtered_apps)
 
-        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {total_candidates} candidates. Fetching resume info...'})}\n\n"
+        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {total_candidates} candidates in selected stage. Fetching resume info...'})}\n\n"
 
         # Build basic candidate info first
         candidates = []

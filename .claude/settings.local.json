@@ -20,7 +20,9 @@
       "Bash(railway variables:*)",
       "Bash(railway service:*)",
       "Bash(time curl:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(git rm:*)",
+      "Bash(timeout 60 grep:*)"
     ]
   }
 }
