@@ -9,7 +9,18 @@
       "Bash(curl:*)",
       "Bash(python -c:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(railway init:*)",
+      "Bash(railway link:*)",
+      "Bash(railway status:*)",
+      "Bash(railway up:*)",
+      "Bash(railway variables --help:*)",
+      "Bash(railway variables:*)",
+      "Bash(railway service:*)",
+      "Bash(time curl:*)",
+      "Bash(git push)"
     ]
   }
 }

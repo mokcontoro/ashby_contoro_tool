@@ -1,12 +1,15 @@
 import os
 import io
+import json
 import zipfile
 import requests
 import math
 import time
 import secrets
+import threading
 from functools import wraps
-from flask import Flask, render_template, jsonify, request, send_file, session, redirect, url_for
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from flask import Flask, render_template, jsonify, request, send_file, session, redirect, url_for, Response
 from dotenv import load_dotenv
 from pypdf import PdfReader, PdfWriter
 
@@ -187,62 +190,94 @@ def get_stages(job_id):
     return jsonify({'error': stages_result.get('errors', 'Unknown error')}), 400
 
 
+def fetch_candidate_resume_handle(candidate_id):
+    """Fetch resume file handle for a single candidate."""
+    if not candidate_id:
+        return None
+    candidate_result = ashby_request('candidate.info', {'id': candidate_id})
+    if candidate_result.get('success'):
+        candidate_full = candidate_result.get('results', {})
+        resume_handle_obj = candidate_full.get('resumeFileHandle')
+        if resume_handle_obj:
+            return resume_handle_obj.get('handle')
+    return None
+
+
 @app.route('/api/candidates')
 @login_required
 def get_candidates():
-    """Get candidates for a specific job and stage."""
+    """Get candidates for a specific job and stage with SSE progress updates."""
     job_id = request.args.get('jobId')
     stage_id = request.args.get('stageId')
 
     if not job_id:
         return jsonify({'error': 'Job ID is required'}), 400
 
-    # Get all applications (with pagination)
-    applications_result = ashby_request_paginated('application.list')
+    def generate():
+        # Send initial status
+        yield f"data: {json.dumps({'type': 'status', 'message': 'Fetching applications...'})}\n\n"
 
-    if not applications_result.get('success'):
-        return jsonify({'error': 'Failed to get applications'}), 400
+        # Build filter parameters for server-side filtering
+        filter_params = {'jobId': job_id}
+        if stage_id:
+            filter_params['interviewStageId'] = stage_id
 
-    applications = applications_result.get('results', [])
+        # Get applications with server-side filtering
+        applications_result = ashby_request_paginated('application.list', filter_params)
 
-    # Filter by job
-    filtered_apps = [app for app in applications if app.get('job', {}).get('id') == job_id]
+        if not applications_result.get('success'):
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Failed to get applications'})}\n\n"
+            return
 
-    # Filter by stage if provided
-    if stage_id:
-        filtered_apps = [app for app in filtered_apps
-                        if app.get('currentInterviewStage', {}).get('id') == stage_id]
+        filtered_apps = applications_result.get('results', [])
+        total_candidates = len(filtered_apps)
 
-    # Get candidate details with resume info
-    candidates = []
-    for i, app in enumerate(filtered_apps):
-        candidate_basic = app.get('candidate', {})
-        candidate_id = candidate_basic.get('id')
+        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {total_candidates} candidates. Fetching resume info...'})}\n\n"
 
-        # Fetch full candidate info to get resume file handle
-        resume_file_handle = None
-        if candidate_id:
-            candidate_result = ashby_request('candidate.info', {'id': candidate_id})
-            if candidate_result.get('success'):
-                candidate_full = candidate_result.get('results', {})
-                resume_handle_obj = candidate_full.get('resumeFileHandle')
-                if resume_handle_obj:
-                    resume_file_handle = resume_handle_obj.get('handle')
+        # Build basic candidate info first
+        candidates = []
+        candidate_ids = []
+        for app_data in filtered_apps:
+            candidate_basic = app_data.get('candidate', {})
+            candidate_id = candidate_basic.get('id')
+            candidate_ids.append(candidate_id)
+            candidates.append({
+                'id': candidate_id,
+                'name': candidate_basic.get('name'),
+                'email': candidate_basic.get('primaryEmailAddress', {}).get('value', 'N/A') if candidate_basic.get('primaryEmailAddress') else 'N/A',
+                'applicationId': app_data.get('id'),
+                'stage': app_data.get('currentInterviewStage', {}).get('title', 'N/A') if app_data.get('currentInterviewStage') else 'N/A',
+                'resumeFileHandle': None
+            })
 
-            # Add delay every 5 requests to avoid rate limiting
-            if (i + 1) % 5 == 0:
-                time.sleep(0.5)
+        # Fetch resume handles concurrently with progress tracking
+        if candidate_ids:
+            completed_count = 0
+            lock = threading.Lock()
 
-        candidates.append({
-            'id': candidate_id,
-            'name': candidate_basic.get('name'),
-            'email': candidate_basic.get('primaryEmailAddress', {}).get('value', 'N/A') if candidate_basic.get('primaryEmailAddress') else 'N/A',
-            'applicationId': app.get('id'),
-            'stage': app.get('currentInterviewStage', {}).get('title', 'N/A') if app.get('currentInterviewStage') else 'N/A',
-            'resumeFileHandle': resume_file_handle
-        })
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_idx = {
+                    executor.submit(fetch_candidate_resume_handle, cid): idx
+                    for idx, cid in enumerate(candidate_ids)
+                }
+                for future in as_completed(future_to_idx):
+                    idx = future_to_idx[future]
+                    try:
+                        resume_handle = future.result()
+                        candidates[idx]['resumeFileHandle'] = resume_handle
+                    except Exception as e:
+                        print(f"Error fetching candidate {candidate_ids[idx]}: {e}")
 
-    return jsonify(candidates)
+                    with lock:
+                        completed_count += 1
+                        if completed_count % 10 == 0 or completed_count == total_candidates:
+                            progress = int((completed_count / total_candidates) * 100)
+                            yield f"data: {json.dumps({'type': 'progress', 'current': completed_count, 'total': total_candidates, 'percent': progress})}\n\n"
+
+        # Send final result
+        yield f"data: {json.dumps({'type': 'complete', 'candidates': candidates})}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
 
 
 @app.route('/api/download-resume/<file_handle>')
