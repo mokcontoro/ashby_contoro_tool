@@ -907,17 +907,22 @@
             const sortValue = document.getElementById('sort-select').value;
             const [field, order] = sortValue.split('-');
 
+            console.log('Sorting by:', field, order);
+            console.log('Sample dates before sort:', candidates.slice(0, 3).map(c => ({ name: c.name, appliedAt: c.appliedAt })));
+
             candidates.sort((a, b) => {
                 let comparison = 0;
                 if (field === 'date') {
-                    const dateA = a.appliedAt ? new Date(a.appliedAt) : new Date(0);
-                    const dateB = b.appliedAt ? new Date(b.appliedAt) : new Date(0);
+                    const dateA = a.appliedAt ? new Date(a.appliedAt).getTime() : 0;
+                    const dateB = b.appliedAt ? new Date(b.appliedAt).getTime() : 0;
                     comparison = dateA - dateB;
                 } else if (field === 'name') {
                     comparison = (a.name || '').localeCompare(b.name || '');
                 }
                 return order === 'desc' ? -comparison : comparison;
             });
+
+            console.log('Sample dates after sort:', candidates.slice(0, 3).map(c => ({ name: c.name, appliedAt: c.appliedAt })));
         }
 
         // Sort change handler
