@@ -414,6 +414,40 @@
             margin-bottom: 16px;
         }
 
+        .sort-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sort-row label {
+            margin: 0;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .sort-row select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .sort-row select:hover {
+            border-color: #667eea;
+        }
+
+        .sort-row select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         .batch-size-row {
             display: flex;
             align-items: center;
@@ -605,6 +639,15 @@
 
             <!-- Batch Controls -->
             <div id="batch-controls" class="batch-controls" style="display: none;">
+                <div class="sort-row">
+                    <label for="sort-select">Sort by:</label>
+                    <select id="sort-select">
+                        <option value="date-desc">Date (Newest first)</option>
+                        <option value="date-asc">Date (Oldest first)</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                    </select>
+                </div>
                 <div class="batch-size-row">
                     <label for="batch-size">Batch size:</label>
                     <input type="number" id="batch-size" min="10" max="100" value="50">
@@ -851,10 +894,45 @@
 
         // Render candidates list
         function renderCandidates() {
+            // Apply initial sort based on dropdown selection
+            sortCandidates();
+            renderCandidatesList();
+
+            // Initialize batch controls
+            initBatchControls();
+        }
+
+        // ==================== Sorting ====================
+        function sortCandidates() {
+            const sortValue = document.getElementById('sort-select').value;
+            const [field, order] = sortValue.split('-');
+
+            candidates.sort((a, b) => {
+                let comparison = 0;
+                if (field === 'date') {
+                    const dateA = a.appliedAt ? new Date(a.appliedAt) : new Date(0);
+                    const dateB = b.appliedAt ? new Date(b.appliedAt) : new Date(0);
+                    comparison = dateA - dateB;
+                } else if (field === 'name') {
+                    comparison = (a.name || '').localeCompare(b.name || '');
+                }
+                return order === 'desc' ? -comparison : comparison;
+            });
+        }
+
+        // Sort change handler
+        document.getElementById('sort-select').addEventListener('change', () => {
+            sortCandidates();
+            renderCandidatesList();
+            initBatchControls();
+        });
+
+        // Render just the candidates list (without re-sorting)
+        function renderCandidatesList() {
             const listEl = document.getElementById('candidates-list');
             listEl.innerHTML = '';
 
-            // Build list of candidates with resumes
+            // Rebuild candidatesWithResume based on current sort order
             candidatesWithResume = [];
             candidates.forEach((candidate, index) => {
                 if (candidate.resumeFileHandle) {
@@ -880,9 +958,6 @@
                 `;
                 listEl.appendChild(div);
             });
-
-            // Initialize batch controls
-            initBatchControls();
         }
 
         // ==================== Batch Controls ====================

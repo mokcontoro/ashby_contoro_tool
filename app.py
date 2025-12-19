@@ -252,6 +252,7 @@ def get_candidates():
                 'email': candidate_basic.get('primaryEmailAddress', {}).get('value', 'N/A') if candidate_basic.get('primaryEmailAddress') else 'N/A',
                 'applicationId': app_data.get('id'),
                 'stage': app_data.get('currentInterviewStage', {}).get('title', 'N/A') if app_data.get('currentInterviewStage') else 'N/A',
+                'appliedAt': app_data.get('appliedAt'),
                 'resumeFileHandle': None
             })
 
