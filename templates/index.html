@@ -405,6 +405,108 @@
             font-size: 13px;
             line-height: 1.5;
         }
+
+        /* Batch controls */
+        .batch-controls {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .batch-size-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .batch-size-row label {
+            margin: 0;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .batch-size-row input {
+            width: 80px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .batch-size-row span {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .batch-buttons-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .batch-buttons-row label {
+            margin: 0;
+            font-weight: 500;
+            color: #555;
+            margin-right: 4px;
+        }
+
+        .batch-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            background: white;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .batch-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .batch-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .batch-btn.clear-btn {
+            background: none;
+            border-color: #ddd;
+            color: #888;
+            margin-left: auto;
+        }
+
+        .batch-btn.clear-btn:hover {
+            border-color: #c62828;
+            color: #c62828;
+        }
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .selection-count {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .selection-batch-label {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -501,6 +603,21 @@
                 <span id="candidate-count" class="candidate-count">0 candidates</span>
             </div>
 
+            <!-- Batch Controls -->
+            <div id="batch-controls" class="batch-controls" style="display: none;">
+                <div class="batch-size-row">
+                    <label for="batch-size">Batch size:</label>
+                    <input type="number" id="batch-size" min="10" max="100" value="50">
+                    <span>resumes per batch</span>
+                    <span id="resume-count-info" style="margin-left: auto; color: #888;"></span>
+                </div>
+                <div class="batch-buttons-row">
+                    <label>Select batch:</label>
+                    <div id="batch-buttons"></div>
+                    <button class="batch-btn clear-btn" onclick="selectNone()">Clear Selection</button>
+                </div>
+            </div>
+
             <div id="loading" class="loading" style="display: none;">
                 <div class="spinner"></div>
                 <p id="loading-text">Loading candidates...</p>
@@ -519,10 +636,11 @@
             </div>
 
             <div class="actions">
-                <div class="select-actions">
-                    <button class="btn-link" onclick="selectAll()">Select All</button>
-                    <button class="btn-link" onclick="selectNone()">Select None</button>
-                    <button class="btn-link" onclick="selectWithResume()">Select With Resume</button>
+                <div class="selection-info">
+                    <span>Selected:</span>
+                    <span id="selection-count" class="selection-count">0</span>
+                    <span>resumes</span>
+                    <span id="selection-batch-label" class="selection-batch-label" style="display: none;"></span>
                 </div>
                 <button id="download-btn" class="btn btn-primary" onclick="downloadSelected()">
                     Download Selected Resumes
@@ -567,6 +685,8 @@
         // ==================== Resume Downloader ====================
         let candidates = [];
         let currentJobId = null;
+        let currentBatch = null; // Track which batch is selected (null = manual selection)
+        let candidatesWithResume = []; // Indices of candidates with resumes
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -734,6 +854,14 @@
             const listEl = document.getElementById('candidates-list');
             listEl.innerHTML = '';
 
+            // Build list of candidates with resumes
+            candidatesWithResume = [];
+            candidates.forEach((candidate, index) => {
+                if (candidate.resumeFileHandle) {
+                    candidatesWithResume.push(index);
+                }
+            });
+
             candidates.forEach((candidate, index) => {
                 const hasResume = !!candidate.resumeFileHandle;
                 const div = document.createElement('div');
@@ -742,7 +870,7 @@
                     <input type="checkbox" class="candidate-checkbox"
                            data-index="${index}"
                            ${hasResume ? '' : 'disabled'}
-                           ${hasResume ? 'checked' : ''}>
+                           onchange="onCheckboxChange()">
                     <div class="candidate-info">
                         <div class="candidate-name">${candidate.name || 'Unknown'}</div>
                         <div class="candidate-email">${candidate.email}</div>
@@ -752,25 +880,161 @@
                 `;
                 listEl.appendChild(div);
             });
+
+            // Initialize batch controls
+            initBatchControls();
         }
 
-        // Selection helpers
-        function selectAll() {
-            document.querySelectorAll('.candidate-checkbox:not(:disabled)').forEach(cb => {
-                cb.checked = true;
+        // ==================== Batch Controls ====================
+        function initBatchControls() {
+            const batchControls = document.getElementById('batch-controls');
+            const resumeCountInfo = document.getElementById('resume-count-info');
+
+            if (candidatesWithResume.length === 0) {
+                batchControls.style.display = 'none';
+                return;
+            }
+
+            batchControls.style.display = 'block';
+            resumeCountInfo.textContent = `${candidatesWithResume.length} with resumes`;
+
+            renderBatchButtons();
+
+            // Select first batch by default
+            if (candidatesWithResume.length > 0) {
+                selectBatch(1);
+            }
+        }
+
+        function getBatchSize() {
+            return parseInt(document.getElementById('batch-size').value) || 50;
+        }
+
+        function calculateBatches() {
+            const batchSize = getBatchSize();
+            const total = candidatesWithResume.length;
+            const batches = [];
+
+            for (let i = 0; i < total; i += batchSize) {
+                const start = i + 1;
+                const end = Math.min(i + batchSize, total);
+                batches.push({ start, end, startIndex: i, endIndex: end - 1 });
+            }
+
+            return batches;
+        }
+
+        function renderBatchButtons() {
+            const container = document.getElementById('batch-buttons');
+            const batches = calculateBatches();
+
+            container.innerHTML = '';
+
+            batches.forEach((batch, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'batch-btn';
+                btn.dataset.batch = index + 1;
+                btn.textContent = `${batch.start}-${batch.end}`;
+                btn.onclick = () => selectBatch(index + 1);
+                container.appendChild(btn);
             });
         }
 
-        function selectNone() {
+        function selectBatch(batchNumber) {
+            const batches = calculateBatches();
+            if (batchNumber < 1 || batchNumber > batches.length) return;
+
+            const batch = batches[batchNumber - 1];
+            currentBatch = batchNumber;
+
+            // Clear all checkboxes first
             document.querySelectorAll('.candidate-checkbox').forEach(cb => {
                 cb.checked = false;
             });
+
+            // Select candidates in this batch
+            for (let i = batch.startIndex; i <= batch.endIndex; i++) {
+                const candidateIndex = candidatesWithResume[i];
+                const checkbox = document.querySelector(`.candidate-checkbox[data-index="${candidateIndex}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+
+            // Update batch button styles
+            document.querySelectorAll('.batch-btn:not(.clear-btn)').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.batch) === batchNumber) {
+                    btn.classList.add('active');
+                }
+            });
+
+            updateSelectionInfo();
+        }
+
+        function onCheckboxChange() {
+            // Manual checkbox change - clear batch selection indicator
+            currentBatch = null;
+            document.querySelectorAll('.batch-btn:not(.clear-btn)').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            updateSelectionInfo();
+        }
+
+        function updateSelectionInfo() {
+            const selectedCount = document.querySelectorAll('.candidate-checkbox:checked').length;
+            document.getElementById('selection-count').textContent = selectedCount;
+
+            const batchLabel = document.getElementById('selection-batch-label');
+            if (currentBatch !== null) {
+                batchLabel.textContent = `Batch ${currentBatch}`;
+                batchLabel.style.display = 'inline';
+            } else if (selectedCount > 0) {
+                batchLabel.textContent = 'manual';
+                batchLabel.style.display = 'inline';
+            } else {
+                batchLabel.style.display = 'none';
+            }
+        }
+
+        // Batch size change handler
+        document.getElementById('batch-size').addEventListener('change', () => {
+            renderBatchButtons();
+            selectNone();
+        });
+
+        // Selection helpers
+        function selectAll() {
+            currentBatch = null;
+            document.querySelectorAll('.candidate-checkbox:not(:disabled)').forEach(cb => {
+                cb.checked = true;
+            });
+            document.querySelectorAll('.batch-btn:not(.clear-btn)').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            updateSelectionInfo();
+        }
+
+        function selectNone() {
+            currentBatch = null;
+            document.querySelectorAll('.candidate-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            document.querySelectorAll('.batch-btn:not(.clear-btn)').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            updateSelectionInfo();
         }
 
         function selectWithResume() {
+            currentBatch = null;
             document.querySelectorAll('.candidate-checkbox').forEach(cb => {
                 cb.checked = !cb.disabled;
             });
+            document.querySelectorAll('.batch-btn:not(.clear-btn)').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            updateSelectionInfo();
         }
 
         // Download selected resumes
