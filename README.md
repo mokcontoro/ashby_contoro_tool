@@ -5,6 +5,7 @@ A Flask web application for downloading candidate resumes from Ashby ATS in bulk
 ## Features
 
 - **Resume Downloader**: Fetch and download resumes for candidates in the "Application Review" stage
+  - Filter jobs to show only open positions (enabled by default)
   - Select a job posting to view candidates
   - Automatically filters to "Application Review" stage
   - Download individual resumes or bulk download as ZIP
@@ -63,9 +64,14 @@ gunicorn app:app --timeout 300
 
 ## Version
 
-Current version: 1.1.0
+Current version: 1.2.0
 
 ## Changelog
+
+### v1.2.0
+- Add "Show only open positions" checkbox filter (enabled by default)
+- Jobs dropdown shows only open positions when filter is active
+- Uncheck to see all jobs with status indicator
 
 ### v1.1.0
 - Removed interview stage selection

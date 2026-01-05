@@ -13,7 +13,7 @@ from flask import Flask, render_template, jsonify, request, send_file, session, 
 from dotenv import load_dotenv
 from pypdf import PdfReader, PdfWriter
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 load_dotenv()
 
