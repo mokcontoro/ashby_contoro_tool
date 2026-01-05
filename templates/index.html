@@ -576,13 +576,6 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="stage-select">Select Interview Stage</label>
-                    <select id="stage-select" disabled>
-                        <option value="">Select a stage...</option>
-                    </select>
-                </div>
-
                 <button id="fetch-candidates" class="btn btn-primary" disabled>
                     Fetch Candidates
                 </button>
@@ -728,6 +721,7 @@
         // ==================== Resume Downloader ====================
         let candidates = [];
         let currentJobId = null;
+        let applicationReviewStageId = null; // Auto-detected "Application Review" stage ID
         let currentBatch = null; // Track which batch is selected (null = manual selection)
         let candidatesWithResume = []; // Indices of candidates with resumes
 
@@ -767,64 +761,50 @@
         // Handle job selection
         async function onJobSelect(e) {
             currentJobId = e.target.value;
-            const stageSelect = document.getElementById('stage-select');
             const fetchBtn = document.getElementById('fetch-candidates');
 
-            // Reset fetch button
+            // Reset state
             fetchBtn.disabled = true;
+            applicationReviewStageId = null;
 
             if (!currentJobId) {
-                stageSelect.disabled = true;
-                stageSelect.innerHTML = '<option value="">Select a stage...</option>';
                 return;
             }
 
             try {
-                stageSelect.innerHTML = '<option value="">Loading stages...</option>';
                 const response = await fetch(`/api/jobs/${currentJobId}/stages`);
                 const stages = await response.json();
 
-                stageSelect.innerHTML = '<option value="">Select a stage...</option>';
-
                 if (!stages.error) {
-                    stages.sort((a, b) => a.orderInInterviewPlan - b.orderInInterviewPlan);
-                    stages.forEach(stage => {
-                        const option = document.createElement('option');
-                        option.value = stage.id;
-                        option.textContent = stage.title;
-                        stageSelect.appendChild(option);
-                    });
+                    // Find the "Application Review" stage
+                    const appReviewStage = stages.find(stage => stage.title === 'Application Review');
+                    if (appReviewStage) {
+                        applicationReviewStageId = appReviewStage.id;
+                        fetchBtn.disabled = false;
+                    } else {
+                        showError('No "Application Review" stage found for this job');
+                    }
                 }
-
-                stageSelect.disabled = false;
             } catch (err) {
                 showError('Failed to load stages: ' + err.message);
             }
         }
 
-        // Enable fetch button when stage is selected
-        document.getElementById('stage-select').addEventListener('change', () => {
-            const stageSelect = document.getElementById('stage-select');
-            const fetchBtn = document.getElementById('fetch-candidates');
-            fetchBtn.disabled = !stageSelect.value;
-        });
-
         // Fetch candidates button click
         document.getElementById('fetch-candidates').addEventListener('click', () => {
             const jobId = document.getElementById('job-select').value;
-            const stageId = document.getElementById('stage-select').value;
 
             if (!jobId) {
                 showError('Please select a job');
                 return;
             }
 
-            if (!stageId) {
-                showError('Please select an interview stage');
+            if (!applicationReviewStageId) {
+                showError('No "Application Review" stage found for this job');
                 return;
             }
 
-            loadCandidates(jobId, stageId);
+            loadCandidates(jobId, applicationReviewStageId);
         });
 
         // Load candidates with SSE progress
