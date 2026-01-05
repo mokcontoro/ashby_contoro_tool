@@ -104,6 +104,20 @@
             margin-bottom: 8px;
         }
 
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
         select, input[type="number"] {
             width: 100%;
             padding: 12px 16px;
@@ -570,6 +584,13 @@
             <!-- Tab 1: Resume Downloader -->
             <div id="tab-downloader" class="tab-content active">
                 <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="open-only" checked>
+                        Show only open positions
+                    </label>
+                </div>
+
+                <div class="form-group">
                     <label for="job-select">Select Job</label>
                     <select id="job-select">
                         <option value="">Loading jobs...</option>
@@ -720,6 +741,7 @@
 
         // ==================== Resume Downloader ====================
         let candidates = [];
+        let allJobs = []; // Store all jobs for filtering
         let currentJobId = null;
         let applicationReviewStageId = null; // Auto-detected "Application Review" stage ID
         let currentBatch = null; // Track which batch is selected (null = manual selection)
@@ -737,24 +759,43 @@
                 const response = await fetch('/api/jobs');
                 const jobs = await response.json();
 
-                const select = document.getElementById('job-select');
-                select.innerHTML = '<option value="">Select a job...</option>';
-
                 if (jobs.error) {
                     showError(jobs.error);
                     return;
                 }
 
-                jobs.forEach(job => {
-                    const option = document.createElement('option');
-                    option.value = job.id;
-                    option.textContent = `${job.title} (${job.status})`;
-                    select.appendChild(option);
-                });
+                allJobs = jobs;
+                filterAndDisplayJobs();
 
-                select.addEventListener('change', onJobSelect);
+                document.getElementById('job-select').addEventListener('change', onJobSelect);
+                document.getElementById('open-only').addEventListener('change', filterAndDisplayJobs);
             } catch (err) {
                 showError('Failed to load jobs: ' + err.message);
+            }
+        }
+
+        // Filter and display jobs based on checkbox
+        function filterAndDisplayJobs() {
+            const openOnly = document.getElementById('open-only').checked;
+            const select = document.getElementById('job-select');
+            const currentValue = select.value;
+
+            select.innerHTML = '<option value="">Select a job...</option>';
+
+            const filteredJobs = openOnly
+                ? allJobs.filter(job => job.status === 'Open')
+                : allJobs;
+
+            filteredJobs.forEach(job => {
+                const option = document.createElement('option');
+                option.value = job.id;
+                option.textContent = openOnly ? job.title : `${job.title} (${job.status})`;
+                select.appendChild(option);
+            });
+
+            // Restore selection if still available
+            if (currentValue && filteredJobs.some(job => job.id === currentValue)) {
+                select.value = currentValue;
             }
         }
 
