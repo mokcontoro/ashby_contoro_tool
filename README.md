@@ -32,13 +32,15 @@ The original download and ZIP-upload combiner remain available.
 
 ## Feedback
 
-Signed-in users can open **Feedback** from either tool to report bugs, request features, or share general feedback. Reports target only `mokcontoro/ashby_contoro_tool` on GitHub. This repository is public; the dialog shows a public-sharing notice, requires acknowledgement, and previews the report before submission.
+Signed-in users can open **Feedback** from either tool to report bugs, suggest ideas, or ask questions. The widget reuses the Nolizi feedback implementation with Ashby-specific configuration. Reports go only to `mokcontoro/ashby_contoro_tool` and follow that repository's access permissions.
 
-By default, **Continue on GitHub** prepares a draft and offers a link to the prefilled issue. The user signs into GitHub and submits it there. No report is marked as submitted just because a draft was prepared. Optional screenshots can be attached on GitHub after reviewing them for private information.
+Features include an automatic removable page screenshot, manual page capture, browser screen/window/tab capture, file selection, clipboard paste, drag-and-drop, full-size image preview/download, and removal. Up to five PNG/JPEG/WebP images are allowed (4 MB each, 12 MB total). Images are reviewed in the dialog before submission. Optional contact email and messages up to 5,000 characters are supported. Draft text and images remain on failure; Ctrl/Cmd+Enter submits.
 
-For direct in-app submission, configure `GITHUB_FEEDBACK_TOKEN` in Railway with a dedicated fine-grained GitHub token limited to this repository and **Issues: Read and write**. The token stays on the server; never put it in the repository or frontend. Without it, the GitHub draft flow remains available. Direct submissions return the created issue link; failed requests retain the draft and timeouts prompt the user to check for an existing issue before retrying.
+**What will be sent** shows product/version, page, viewport, timezone, user agent, network status, recent JavaScript errors, and a bounded reproduction record: recent UI actions, request URLs/status/timings, control states, scroll position, language, and connection type. Query values, resume handles, job IDs in API paths, and credential patterns are redacted. Request/response bodies, cookies, and password field values are never collected. Activity metadata is retained in this browser tab for up to 15 minutes; screenshots and messages stay in memory until submission or page closure. Screenshots may contain visible candidate information, so the dialog asks the reporter to review and remove private content.
 
-Optional automatic context is limited to the app version and active tool, shown before submission. Candidate details, resume files, URLs, browser history, and console logs are not collected. There is no automatic screenshot capture or local persistent draft storage.
+Set `GITHUB_FEEDBACK_TOKEN` in Railway to a fine-grained token limited to this repository with **Issues: Read and write** and **Contents: Read and write**. The token stays on the server. Screenshots are stored under `.github/feedback-attachments/` on the separate `feedback-attachments` branch, then embedded in the issue. Content hashes avoid duplicate image uploads on retry. This branch does not change `main` or trigger its automatic deployment. If screenshot upload fails, no issue is created; an issue-submission timeout tells the reporter to check for an existing issue before retrying. Successfully uploaded images can remain on the attachment branch if a later issue request fails.
+
+The shared widget's bundled screenshot renderer retains its MIT license in `static/vendor/modern-screenshot.LICENSE`. No Nolizi user data, screenshots, or credentials are included.
 
 ## Setup
 
@@ -78,7 +80,7 @@ gunicorn app:app --timeout 300
 | `ASHBY_API_KEY` | Your Ashby API key | Yes |
 | `APP_PASSKEY` | Password for login authentication | Yes |
 | `SECRET_KEY` | Flask session secret key | No (auto-generated if not set) |
-| `GITHUB_FEEDBACK_TOKEN` | Repository-scoped token for direct GitHub feedback submission | No (uses prefilled GitHub drafts otherwise) |
+| `GITHUB_FEEDBACK_TOKEN` | Repository-scoped token with Issues and Contents write access | Yes for feedback submission and screenshots |
 
 ## Version
 

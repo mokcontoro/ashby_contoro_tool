@@ -1,40 +1,6 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/nolizi.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/nolizi-feedback.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='feedback.css') }}">
-<button type="button" id="feedback-open" class="btn feedback-trigger">Feedback</button>
-<dialog id="feedback-dialog" aria-labelledby="feedback-heading">
-    <div class="feedback-header">
-        <h2 id="feedback-heading">Share feedback</h2>
-        <button type="button" id="feedback-close" aria-label="Close feedback">&times;</button>
-    </div>
-    <p class="feedback-intro">Report a problem or suggest an improvement to Ashby Tools.</p>
-    <p class="feedback-notice">Reports go to the <a href="https://github.com/mokcontoro/ashby_contoro_tool/issues" target="_blank" rel="noopener noreferrer">public GitHub issue tracker</a>. Do not include candidate details, resumes, passwords, or other private information.</p>
-    <form id="feedback-form">
-        <label for="feedback-type">Feedback type</label>
-        <select id="feedback-type">
-            <option value="bug">Bug / something isn't working</option>
-            <option value="feature">Feature request</option>
-            <option value="general">General feedback</option>
-        </select>
-        <label for="feedback-title">Short title</label>
-        <input id="feedback-title" type="text" maxlength="100" required placeholder="What would you like us to know?">
-        <label for="feedback-message">Details</label>
-        <textarea id="feedback-message" rows="6" maxlength="2000" required placeholder="What were you trying to do? What happened, and what did you expect?"></textarea>
-        <p class="feedback-caption">Up to 2,000 characters. Closing this dialog keeps your draft while this page stays open.</p>
-        <label class="feedback-check"><input type="checkbox" id="feedback-diagnostics" checked> Include app context</label>
-        <p id="feedback-context" class="feedback-caption"></p>
-        <p class="feedback-caption">Only the version and tool shown above are included automatically. No candidate data or activity history is collected.</p>
-        <details class="feedback-preview">
-            <summary>Preview what will be shared</summary>
-            <pre id="feedback-preview"></pre>
-        </details>
-        <p id="feedback-attachments" class="feedback-caption">Optional screenshots: attach them on GitHub after reviewing and removing private information.</p>
-        <label class="feedback-check"><input type="checkbox" id="feedback-consent" required> I understand this report will be public.</label>
-        <p id="feedback-mode" class="feedback-caption"></p>
-        <div class="feedback-actions">
-            <button type="button" id="feedback-discard" class="btn btn-link">Discard draft</button>
-            <button type="submit" id="feedback-submit" class="btn btn-primary" disabled>Loading...</button>
-        </div>
-    </form>
-    <p id="feedback-status" role="status" aria-live="polite"></p>
-    <a id="feedback-result" target="_blank" rel="noopener noreferrer" hidden></a>
-</dialog>
+<div id="ashby-feedback" class="nl-theme"></div>
+<script src="{{ url_for('static', filename='vendor/nolizi-feedback.js') }}" defer></script>
 <script src="{{ url_for('static', filename='feedback.js') }}" defer></script>
