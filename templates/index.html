@@ -704,6 +704,15 @@
                 </button>
             </div>
 
+            <div class="form-group" style="margin-top: 24px;">
+                <label for="merge-group-size">Resumes per Merged PDF</label>
+                <input type="number" id="merge-group-size" min="1" step="1" value="10">
+                <p class="help-text">Merge selected resumes in the current list order and download a ZIP. No upload needed.</p>
+                <button id="merge-download-btn" class="btn btn-primary" style="margin-top: 12px;" onclick="downloadSelected(true)">
+                    Merge &amp; Download Selected
+                </button>
+            </div>
+
             <div id="download-progress" class="progress-section">
                 <div class="spinner"></div>
                 <p>Preparing download...</p>
@@ -1139,7 +1148,7 @@
         }
 
         // Download selected resumes
-        async function downloadSelected() {
+        async function downloadSelected(merge = false) {
             const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
             const selected = [];
             const names = [];
@@ -1158,21 +1167,31 @@
                 return;
             }
 
+            const groupSize = Number(document.getElementById('merge-group-size').value);
+            if (merge && (!Number.isSafeInteger(groupSize) || groupSize < 1)) {
+                showError('Resumes per merged PDF must be a positive whole number');
+                return;
+            }
+
             const progress = document.getElementById('download-progress');
             const downloadBtn = document.getElementById('download-btn');
+            const mergeBtn = document.getElementById('merge-download-btn');
 
+            progress.querySelector('p').textContent = merge ? 'Downloading and merging selected resumes...' : 'Preparing download...';
             progress.classList.add('visible');
             downloadBtn.disabled = true;
+            mergeBtn.disabled = true;
 
             try {
-                const response = await fetch('/api/download-bulk', {
+                const response = await fetch(merge ? '/api/download-merged' : '/api/download-bulk', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         fileHandles: selected,
-                        candidateNames: names
+                        candidateNames: names,
+                        pdfsPerFile: groupSize
                     })
                 });
 
@@ -1185,18 +1204,21 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'candidate_resumes.zip';
+                a.download = merge ? 'merged_resumes.zip' : 'candidate_resumes.zip';
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 a.remove();
 
-                showSuccess(`Successfully downloaded ${selected.length} resume(s)`);
+                showSuccess(merge
+                    ? `Merged ${selected.length} resumes into ${Math.ceil(selected.length / groupSize)} PDF(s). Download started.`
+                    : `Successfully downloaded ${selected.length} resume(s)`);
             } catch (err) {
                 showError('Download failed: ' + err.message);
             } finally {
                 progress.classList.remove('visible');
                 downloadBtn.disabled = false;
+                mergeBtn.disabled = false;
             }
         }
 

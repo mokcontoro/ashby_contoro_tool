@@ -1,4 +1,7 @@
 import pytest
+import io
+import zipfile
+from pypdf import PdfReader, PdfWriter
 from unittest.mock import patch, MagicMock
 from app import app, __version__
 
@@ -126,6 +129,57 @@ class TestPDFCombiner:
         """Test that PDF combiner requires a file."""
         response = authenticated_client.post('/api/combine-pdfs')
         assert response.status_code == 400
+
+
+class TestMergedDownload:
+    def test_requires_auth(self, client):
+        assert client.post('/api/download-merged').status_code == 401
+
+    @pytest.mark.parametrize('payload', [None, [], {}, {'fileHandles': 'a'},
+        {'fileHandles': [None]}, {'fileHandles': ['a'], 'pdfsPerFile': 0},
+        {'fileHandles': ['a'], 'pdfsPerFile': 1.5},
+        {'fileHandles': ['a'], 'pdfsPerFile': True}])
+    def test_invalid_input(self, authenticated_client, payload):
+        assert authenticated_client.post('/api/download-merged', json=payload).status_code == 400
+
+    @patch('app.requests.get')
+    @patch('app.ashby_request')
+    def test_groups_preserve_resume_and_page_order(self, ashby, get, authenticated_client):
+        pdfs = {}
+        for handle, widths in [('a', [100, 101]), ('b', [200]), ('c', [300])]:
+            writer = PdfWriter()
+            for width in widths:
+                writer.add_blank_page(width=width, height=400)
+            buffer = io.BytesIO()
+            writer.write(buffer)
+            pdfs[handle] = buffer.getvalue()
+        ashby.side_effect = lambda endpoint, data: {'success': True, 'results': {'url': data['fileHandle']}}
+        get.side_effect = lambda url, **kwargs: MagicMock(content=pdfs[url])
+        response = authenticated_client.post('/api/download-merged', json={
+            'fileHandles': ['c', 'a', 'b'], 'pdfsPerFile': 2})
+        assert response.status_code == 200
+        with zipfile.ZipFile(io.BytesIO(response.data)) as archive:
+            assert archive.namelist() == ['combined_001.pdf', 'combined_002.pdf']
+            widths = [[int(page.mediabox.width) for page in
+                       PdfReader(io.BytesIO(archive.read(name))).pages]
+                      for name in archive.namelist()]
+            assert widths == [[300, 100, 101], [200]]
+        assert all(call.kwargs['timeout'] == 30 for call in get.call_args_list)
+
+    @patch('app.ashby_request', return_value={'success': False})
+    def test_download_failure_returns_error(self, ashby, authenticated_client):
+        response = authenticated_client.post('/api/download-merged', json={'fileHandles': ['a']})
+        assert response.status_code == 502
+        assert response.is_json
+
+    @patch('app.requests.get')
+    @patch('app.ashby_request')
+    def test_invalid_pdf_is_not_silently_skipped(self, ashby, get, authenticated_client):
+        ashby.return_value = {'success': True, 'results': {'url': 'resume'}}
+        get.return_value = MagicMock(content=b'not a PDF')
+        response = authenticated_client.post('/api/download-merged', json={'fileHandles': ['a']})
+        assert response.status_code == 422
+        assert 'resume 1' in response.get_json()['error']
 
 
 if __name__ == '__main__':

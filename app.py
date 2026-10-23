@@ -379,6 +379,64 @@ def download_bulk():
     )
 
 
+@app.route('/api/download-merged', methods=['POST'])
+@login_required
+def download_merged():
+    """Download selected resumes and merge them in the supplied order."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'A JSON object is required'}), 400
+    handles = data.get('fileHandles')
+    group_size = data.get('pdfsPerFile', 10)
+    if (not isinstance(handles, list) or not handles
+            or any(not isinstance(handle, str) or not handle.strip() for handle in handles)):
+        return jsonify({'error': 'Select at least one resume'}), 400
+    if type(group_size) is not int or group_size < 1:
+        return jsonify({'error': 'Resumes per merged PDF must be a positive whole number'}), 400
+
+    def download_pdf(handle):
+        result = ashby_request('file.info', {'fileHandle': handle})
+        info = result.get('results') or {}
+        if not result.get('success') or not info.get('url'):
+            raise ValueError('Could not retrieve a selected resume')
+        response = requests.get(info['url'], timeout=30)
+        response.raise_for_status()
+        return response.content
+
+    try:
+        # map preserves selection order even when downloads finish out of order.
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            pdfs = list(executor.map(download_pdf, handles))
+    except Exception:
+        app.logger.exception('Selected resume download failed')
+        return jsonify({'error': 'Could not download all selected resumes. Please retry; no files were omitted.'}), 502
+
+    output = io.BytesIO()
+    try:
+        with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
+            for start in range(0, len(pdfs), group_size):
+                writer = PdfWriter()
+                for index in range(start, min(start + group_size, len(pdfs))):
+                    try:
+                        reader = PdfReader(io.BytesIO(pdfs[index]))
+                        if reader.is_encrypted or not reader.pages:
+                            raise ValueError('Encrypted or empty PDF')
+                        for page in reader.pages:
+                            writer.add_page(page)
+                    except Exception:
+                        return jsonify({'error': f'Selected resume {index + 1} is not a readable, unencrypted PDF. Deselect it and retry.'}), 422
+                combined = io.BytesIO()
+                writer.write(combined)
+                archive.writestr(f'combined_{start // group_size + 1:03d}.pdf', combined.getvalue())
+    except Exception:
+        app.logger.exception('Resume merge failed')
+        return jsonify({'error': 'Could not merge the selected PDFs. Please retry.'}), 500
+
+    output.seek(0)
+    return send_file(output, mimetype='application/zip', as_attachment=True,
+                     download_name='merged_resumes.zip')
+
+
 @app.route('/pdf-combiner')
 @login_required
 def pdf_combiner():

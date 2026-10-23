@@ -9,6 +9,7 @@ A Flask web application for downloading candidate resumes from Ashby ATS in bulk
   - Select a job posting to view candidates
   - Automatically filters to "Application Review" stage
   - Download individual resumes or bulk download as ZIP
+  - One-step **Merge & Download Selected**: download selected resumes and merge them into grouped PDFs, delivered as a ZIP without saving and uploading intermediate files
   - Sort candidates by name or application date
   - Batch selection for large candidate lists
 
@@ -16,6 +17,12 @@ A Flask web application for downloading candidate resumes from Ashby ATS in bulk
   - Upload a ZIP file containing PDFs
   - Specify how many PDFs to combine per output file
   - Download combined PDFs as a ZIP
+
+## One-step merged download
+
+Select a job, fetch candidates, and select the resumes to include. Set **Resumes per Merged PDF** (default: 10), then click **Merge & Download Selected**. The downloaded `merged_resumes.zip` contains numbered PDFs in the current candidate list order. Each resume stays intact within its group, including all of its pages. If a resume cannot be downloaded or is not a readable, unencrypted PDF, the app reports an error instead of silently omitting it.
+
+The original download and ZIP-upload combiner remain available.
 
 ## Requirements
 
