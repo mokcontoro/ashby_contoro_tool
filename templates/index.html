@@ -699,17 +699,25 @@
                     <span>resumes</span>
                     <span id="selection-batch-label" class="selection-batch-label" style="display: none;"></span>
                 </div>
-                <button id="download-btn" class="btn btn-primary" onclick="downloadSelected()">
-                    Download Selected Resumes
+            </div>
+
+            <div class="info-box" style="margin-top: 24px;">
+                <h3>Merge and download in one step</h3>
+                <p>Use the checkboxes above to choose resumes. This button fetches those resumes, combines them into PDFs, and downloads a ZIP containing the merged PDFs. You do not need to save and upload a ZIP to the PDF Combiner tab.</p>
+                <label for="merge-group-size" style="margin-top: 16px;">Resumes in each merged PDF</label>
+                <input type="number" id="merge-group-size" min="1" step="1" value="10" aria-describedby="merge-size-help merge-preview">
+                <p id="merge-size-help" style="margin-top: 8px;">Example: 50 selected resumes with 10 per PDF produces 5 merged PDFs in one ZIP. Each resume keeps all its pages. Resumes follow the current list order.</p>
+                <p id="merge-preview" aria-live="polite" style="margin-top: 12px; font-weight: 600;">Select resumes above to see what you will download.</p>
+                <button id="merge-download-btn" class="btn btn-primary" style="margin-top: 12px;" onclick="downloadSelected(true)">
+                    Merge Selected &amp; Download ZIP
                 </button>
             </div>
 
-            <div class="form-group" style="margin-top: 24px;">
-                <label for="merge-group-size">Resumes per Merged PDF</label>
-                <input type="number" id="merge-group-size" min="1" step="1" value="10">
-                <p class="help-text">Merge selected resumes in the current list order and download a ZIP. No upload needed.</p>
-                <button id="merge-download-btn" class="btn btn-primary" style="margin-top: 12px;" onclick="downloadSelected(true)">
-                    Merge &amp; Download Selected
+            <div class="form-group">
+                <label>Download individual resumes</label>
+                <p class="help-text">Download a ZIP with a separate original file for each selected resume. This does not merge the files.</p>
+                <button id="download-btn" class="btn btn-link" style="margin-top: 8px;" onclick="downloadSelected()">
+                    Download Originals as ZIP
                 </button>
             </div>
 
@@ -874,6 +882,8 @@
             progressBarContainer.style.display = 'none';
             progressBar.style.width = '0%';
             listEl.innerHTML = '';
+            currentBatch = null;
+            updateSelectionInfo();
             emptyState.style.display = 'none';
 
             let url = `/api/candidates?jobId=${jobId}`;
@@ -1094,6 +1104,7 @@
         function updateSelectionInfo() {
             const selectedCount = document.querySelectorAll('.candidate-checkbox:checked').length;
             document.getElementById('selection-count').textContent = selectedCount;
+            updateMergePreview();
 
             const batchLabel = document.getElementById('selection-batch-label');
             if (currentBatch !== null) {
@@ -1106,6 +1117,22 @@
                 batchLabel.style.display = 'none';
             }
         }
+
+        function updateMergePreview() {
+            const count = document.querySelectorAll('.candidate-checkbox:checked').length;
+            const size = Number(document.getElementById('merge-group-size').value);
+            const preview = document.getElementById('merge-preview');
+            if (!count) {
+                preview.textContent = 'Select resumes above to see what you will download.';
+            } else if (!Number.isSafeInteger(size) || size < 1) {
+                preview.textContent = 'Enter a whole number of at least 1.';
+            } else {
+                const files = Math.ceil(count / size);
+                preview.textContent = `${count} selected resume${count === 1 ? '' : 's'} → ${files} merged PDF${files === 1 ? '' : 's'} in one ZIP (up to ${size} resumes per PDF).`;
+            }
+        }
+
+        document.getElementById('merge-group-size').addEventListener('input', updateMergePreview);
 
         // Batch size change handler
         document.getElementById('batch-size').addEventListener('change', () => {
