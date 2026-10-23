@@ -1,0 +1,24 @@
+.feedback-trigger { position: fixed; right: 20px; bottom: 20px; z-index: 20; background: #fff; color: #9a482f; border: 2px solid #c4694a; box-shadow: 0 3px 16px #0002; }
+#feedback-dialog { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 24px; border: 0; border-radius: 12px; color: #333; overflow-y: auto; }
+#feedback-dialog::backdrop { background: #0007; }
+.feedback-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.feedback-header h2 { font-size: 22px; }
+#feedback-close { background: none; border: 0; font-size: 28px; padding: 4px 10px; cursor: pointer; }
+.feedback-intro { margin: 8px 0 16px; line-height: 1.5; }
+.feedback-notice { background: #fff3e6; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.5; }
+#feedback-dialog a { color: #944328; text-decoration: underline; }
+#feedback-form > label { margin: 16px 0 6px; }
+#feedback-form input[type="text"], #feedback-form textarea, #feedback-form select { width: 100%; padding: 10px 12px; font: inherit; border: 1px solid #aaa; border-radius: 6px; background: #fff; color: #333; }
+#feedback-form textarea { resize: vertical; }
+#feedback-dialog :focus-visible { outline: 3px solid #c4694a; outline-offset: 2px; }
+.feedback-caption { font-size: 13px; color: #606060; margin-top: 8px; line-height: 1.5; }
+#feedback-form .feedback-check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; font-weight: normal; }
+.feedback-check input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
+.feedback-preview { margin-top: 16px; border: 1px solid #ddd; border-radius: 6px; padding: 12px; }
+.feedback-preview summary { cursor: pointer; }
+.feedback-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: 14px; line-height: 1.5; margin-top: 12px; }
+.feedback-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 20px; }
+#feedback-status { margin-top: 12px; line-height: 1.5; }
+#feedback-status[data-error="true"] { color: #b42318; }
+#feedback-result { display: inline-block; margin-top: 8px; }
+#feedback-result[hidden] { display: none; }

@@ -30,6 +30,16 @@ The original download and ZIP-upload combiner remain available.
 - Ashby API key
 - Dependencies listed in `requirements.txt`
 
+## Feedback
+
+Signed-in users can open **Feedback** from either tool to report bugs, request features, or share general feedback. Reports target only `mokcontoro/ashby_contoro_tool` on GitHub. This repository is public; the dialog shows a public-sharing notice, requires acknowledgement, and previews the report before submission.
+
+By default, **Continue on GitHub** prepares a draft and offers a link to the prefilled issue. The user signs into GitHub and submits it there. No report is marked as submitted just because a draft was prepared. Optional screenshots can be attached on GitHub after reviewing them for private information.
+
+For direct in-app submission, configure `GITHUB_FEEDBACK_TOKEN` in Railway with a dedicated fine-grained GitHub token limited to this repository and **Issues: Read and write**. The token stays on the server; never put it in the repository or frontend. Without it, the GitHub draft flow remains available. Direct submissions return the created issue link; failed requests retain the draft and timeouts prompt the user to check for an existing issue before retrying.
+
+Optional automatic context is limited to the app version and active tool, shown before submission. Candidate details, resume files, URLs, browser history, and console logs are not collected. There is no automatic screenshot capture or local persistent draft storage.
+
 ## Setup
 
 1. Clone the repository
@@ -68,6 +78,7 @@ gunicorn app:app --timeout 300
 | `ASHBY_API_KEY` | Your Ashby API key | Yes |
 | `APP_PASSKEY` | Password for login authentication | Yes |
 | `SECRET_KEY` | Flask session secret key | No (auto-generated if not set) |
+| `GITHUB_FEEDBACK_TOKEN` | Repository-scoped token for direct GitHub feedback submission | No (uses prefilled GitHub drafts otherwise) |
 
 ## Version
 

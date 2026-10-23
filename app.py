@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, jsonify, request, send_file, session, redirect, url_for, Response
 from dotenv import load_dotenv
 from pypdf import PdfReader, PdfWriter
+from feedback import register_feedback
 
 __version__ = '1.2.0'
 
@@ -35,6 +36,9 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+register_feedback(app, login_required, __version__)
 
 
 def ashby_request(endpoint, data=None, retries=3):
